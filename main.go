@@ -6,7 +6,10 @@ package main
 
 import (
 	server "OBlocking/Server"
+	"encoding/json"
 	"flag"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 )
@@ -33,6 +36,30 @@ func main() {
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ConnectRoom", func(w http.ResponseWriter, r *http.Request) {
 
+		room := struct {
+			Room     string `json:"room"`
+			Password string `json:"password"`
+		}{}
+
+		buff, err := io.ReadAll(r.Body)
+
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := json.Unmarshal(buff, &room); err != nil {
+			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+
+		}
+
+		fmt.Printf("room: %v\n", room)
+		fmt.Printf("buff: %v\n", string(buff))
+		log.Println(r.URL)
+		http.ServeFile(w, r, "home.html")
 	})
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		server.ServeWs(hub, w, r)

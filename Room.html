@@ -111,18 +111,59 @@ button:hover {
 </form>
 
 <script>
-document.getElementById("loginForm").onsubmit = function (e) {
+
+document.getElementById("loginForm").onsubmit = async function (e) {
     e.preventDefault();
 
     const room = document.getElementById("room").value.trim();
     const password = document.getElementById("password").value;
 
-    // пример — дальше можешь подключать WebSocket / fetch
-    console.log("Room:", room);
-    console.log("Password:", password);
+    if (!room || !password) return;
 
-    // TODO: отправка на сервер
+    // Хэшируем пароль
+    const passwordHash = await sha256(password);
+    console.log(passwordHash);
+
+    const payload = {
+        room: room,
+        password: passwordHash
+    };
+
+    try {
+        const response = await fetch("/ConnectRoom", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error("Ошибка авторизации");
+        }
+
+        const result = await response.json();
+
+        console.log("Успех:", result);
+
+        // пример: переход в чат
+        // location.href = `/chat?room=${encodeURIComponent(room)}`;
+
+    } catch (err) {
+        alert(err.message);
+    }
 };
 </script>
 </body>
+
+<script>
+async function sha256(text) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+</script>
 </html>
