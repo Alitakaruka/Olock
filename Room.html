@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Вход в комнату</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Card */
+.card {
+    width: 100%;
+    max-width: 360px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,.25);
+}
+
+/* Title */
+.card h1 {
+    margin: 0 0 20px;
+    font-size: 20px;
+    text-align: center;
+}
+
+/* Inputs */
+.field {
+    margin-bottom: 14px;
+}
+
+.field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #374151;
+}
+
+.field input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+    outline: none;
+}
+
+.field input:focus {
+    border-color: #667eea;
+}
+
+/* Button */
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 12px;
+    border: none;
+    background: #667eea;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #5a67d8;
+}
+
+/* Hint */
+.hint {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #6b7280;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+<form class="card" id="loginForm">
+    <h1>🔐 Вход в комнату</h1>
+
+    <div class="field">
+        <label for="room">Имя комнаты</label>
+        <input type="text" id="room" name="room" placeholder="Например: dev-chat" required>
+    </div>
+
+    <div class="field">
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required>
+    </div>
+
+    <button type="submit">Войти</button>
+
+    <div class="hint">
+        Пароль передаётся на сервер
+    </div>
+</form>
+
+<script>
+document.getElementById("loginForm").onsubmit = function (e) {
+    e.preventDefault();
+
+    const room = document.getElementById("room").value.trim();
+    const password = document.getElementById("password").value;
+
+    // пример — дальше можешь подключать WebSocket / fetch
+    console.log("Room:", room);
+    console.log("Password:", password);
+
+    // TODO: отправка на сервер
+};
+</script>
+</body>
+</html>
