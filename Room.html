@@ -111,7 +111,6 @@ button:hover {
 </form>
 
 <script>
-
 document.getElementById("loginForm").onsubmit = async function (e) {
     e.preventDefault();
 
@@ -120,9 +119,7 @@ document.getElementById("loginForm").onsubmit = async function (e) {
 
     if (!room || !password) return;
 
-    // Хэшируем пароль
     const passwordHash = await sha256(password);
-    console.log(passwordHash);
 
     const payload = {
         room: room,
@@ -139,6 +136,7 @@ document.getElementById("loginForm").onsubmit = async function (e) {
         });
 
         if (!response.ok) {
+            console.log(response);
             throw new Error("Ошибка авторизации");
         }
 
@@ -146,9 +144,9 @@ document.getElementById("loginForm").onsubmit = async function (e) {
 
         console.log("Успех:", result);
 
-        // пример: переход в чат
-        // location.href = `/chat?room=${encodeURIComponent(room)}`;
-
+        // ✅ РЕДИРЕКТ НА СТРАНИЦУ КОМНАТЫ
+        // window.location.href = `/chat?room=${encodeURIComponent(room)}`;
+        window.location.href =  "/TestRoom";
     } catch (err) {
         alert(err.message);
     }

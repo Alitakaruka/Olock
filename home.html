@@ -139,7 +139,7 @@ window.onload = function () {
     };
 
     if ("WebSocket" in window) {
-        conn = new WebSocket("ws://" + location.host + "/ws");
+        conn = new WebSocket("wss://" + location.host + "/ws");
 
         conn.onopen = () => appendMessage("Connected", true);
         conn.onclose = () => appendMessage("Connection closed", true);
