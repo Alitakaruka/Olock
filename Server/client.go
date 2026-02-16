@@ -6,7 +6,6 @@ package server
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -65,7 +64,7 @@ func (c *Client) ReadPump() {
 
 	for {
 		_, message, err := c.conn.ReadMessage()
-		fmt.Printf("message: %v\n", len(message))
+		// fmt.Printf("message: %v\n", len(message))
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)

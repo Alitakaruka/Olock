@@ -18,13 +18,9 @@ import (
 const sessionCookieName = "session"
 const sessionDuration = 7 * 24 * time.Hour
 
-const (
-	testRoom = "123"
-	testPass = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3"
-)
-
 type Server struct {
-	db *sql.DB
+	db    *sql.DB
+	rooms map[string]*Hub
 }
 
 type sessionUser struct {
@@ -46,8 +42,8 @@ func (S *Server) Serve() {
 
 func (S *Server) Init() {
 	S.initDB()
-	hub := NewHub() //
-	go hub.Run()
+	// hub := NewHub() //
+	// go hub.Run()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		//
@@ -61,15 +57,37 @@ func (S *Server) Init() {
 		}
 		http.ServeFile(w, r, "Pages/Room.html")
 	})
-	http.HandleFunc("/TestRoom", func(w http.ResponseWriter, r *http.Request) {
+	// http.HandleFunc("/TestRoom", func(w http.ResponseWriter, r *http.Request) {
+	// 	if S.getSession(r) == nil {
+	// 		http.Redirect(w, r, "/", http.StatusFound)
+	// 		return
+	// 	}
+	// 	http.ServeFile(w, r, "Pages/home.html")
+	// })
+
+	http.HandleFunc("/rooms/{template}", func(w http.ResponseWriter, r *http.Request) {
 		if S.getSession(r) == nil {
-			http.Redirect(w, r, "/", http.StatusFound)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		http.ServeFile(w, r, "Pages/home.html")
-	})
-	http.HandleFunc("/ConnectRoom", S.ConnectRoom)
 
+		room := r.PathValue("template")
+		if h, ok := S.rooms[room]; ok {
+			ServeWs(h, w, r)
+		} else {
+			hub := NewHub() //
+			go hub.Run()
+			S.rooms[r.PathValue("template")] = hub
+			ServeWs(hub, w, r)
+		}
+
+		// log.Println(r.PathValue("template"))
+		// template := r.PathValue("template")
+		// fmt.Fprintln(w, template)
+
+	})
+
+	http.HandleFunc("/ConnectRoom", S.ConnectRoom)
 	http.HandleFunc("/CreateRoom", S.CreateRoom)
 	http.HandleFunc("/CreateUser", S.CreateUser)
 	http.HandleFunc("/Login", S.Login)
@@ -81,7 +99,7 @@ func (S *Server) Init() {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		ServeWs(hub, w, r)
+		// ServeWs(hub, w, r)
 	})
 }
 
@@ -111,12 +129,6 @@ func (S *Server) ConnectRoom(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-
 	queryRes := struct {
 		name string
 		id   int
@@ -133,18 +145,25 @@ func (S *Server) ConnectRoom(w http.ResponseWriter, r *http.Request) {
 		room.Password).Scan(&queryRes.name, &queryRes.id)
 
 	if err != nil {
-		fmt.Println(err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Println(err)
+		if err == sql.ErrNoRows {
+			http.Error(w, "Don't trust the room name or password!", http.StatusBadRequest)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
 		tx.Rollback()
 		return
 	}
 
 	tx.Commit()
+
+	// S.rooms[queryRes.name] = *NewHub()
+
 	fmt.Println("redirect")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"ok"}`))
-	// http.Redirect(w, r, "/TestRoom", http.StatusSeeOther)
+	http.Redirect(w, r, "/rooms/"+room.Room, http.StatusSeeOther)
 }
 
 func (S *Server) CreateRoom(w http.ResponseWriter, r *http.Request) {

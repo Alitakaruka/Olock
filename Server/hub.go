@@ -8,7 +8,7 @@ package server
 // clients.
 type Hub struct {
 	//Byffer for new or reconnected clients
-	ramBuffer map[int][]byte
+	ramBuffer [][]byte
 	// Registered clients.
 	clients map[*Client]bool
 	// Inbound messages from the clients.
@@ -23,7 +23,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		ramBuffer:  make(map[int][]byte),
+		ramBuffer:  make([][]byte, 0),
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
@@ -32,20 +32,28 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Run() {
-	MsgIndex := 0
 	for {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
 
-			for i := 0; i < len(h.ramBuffer); i++ {
+			for _, val := range h.ramBuffer {
 				select {
-				case client.send <- h.ramBuffer[i]:
+				case client.send <- val:
 				default:
 					close(client.send)
 					delete(h.clients, client)
 				}
 			}
+
+			// for i := 0; i < len(h.ramBuffer); i++ {
+			// 	select {
+			// 	case client.send <- h.ramBuffer[i]:
+			// 	default:
+			// 		close(client.send)
+			// 		delete(h.clients, client)
+			// 	}
+			// }
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
@@ -53,8 +61,10 @@ func (h *Hub) Run() {
 			}
 		case message := <-h.broadcast:
 			//Write message to local buffer
-			h.ramBuffer[MsgIndex] = message
-			MsgIndex++
+			h.ramBuffer = append(h.ramBuffer, message)
+			if len(h.ramBuffer) > 100 { //save last 100 massages
+				h.ramBuffer = h.ramBuffer[1:]
+			}
 			for client := range h.clients {
 				select {
 				case client.send <- message:
