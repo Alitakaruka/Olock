@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Чат</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-hover: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --incoming: #21262d;
+    --outgoing: #1f6feb;
+    --system: rgba(88, 166, 255, 0.15);
+    --radius: 12px;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+}
+
+.chat {
+    width: 100%;
+    max-width: 480px;
+    height: 100%;
+    max-height: 700px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+@media (min-width: 500px) {
+    body { padding: 24px 0; display: flex; align-items: center; justify-content: center; }
+    .chat { height: 85vh; border-radius: var(--radius); }
+}
+
+.chat-header {
+    padding: 14px 18px;
+    font-weight: 600;
+    font-size: 15px;
+    background: var(--surface-hover);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+.status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: pulse 2s infinite;
+}
+.status.connected::before { background: #3fb950; }
+.status.disconnected::before { background: #f85149; animation: none; }
+
+.active-badge {
+    position: relative;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: help;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+}
+
+.active-badge:hover {
+    color: var(--text);
+}
+
+.active-badge-popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 6px;
+    padding: 10px 12px;
+    min-width: 140px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    font-size: 12px;
+    color: var(--text);
+    z-index: 10;
+    display: none;
+    white-space: nowrap;
+}
+
+.active-badge:hover .active-badge-popup {
+    display: block;
+}
+
+.active-badge-popup-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.active-badge-popup-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+#log {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#log:empty::after {
+    content: "Ожидание сообщений…";
+    color: var(--text-muted);
+    font-size: 13px;
+    margin: auto;
+}
+
+.message {
+    padding: 10px 14px;
+    border-radius: 10px;
+    max-width: 85%;
+    word-wrap: break-word;
+    animation: msgIn 0.2s ease-out;
+}
+
+@keyframes msgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.incoming {
+    align-self: flex-start;
+    background: var(--incoming);
+    border: 1px solid var(--border);
+}
+
+.message.outgoing {
+    align-self: flex-end;
+    background: var(--outgoing);
+    border: 1px solid rgba(31, 111, 235, 0.5);
+}
+
+.message-author {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.message.outgoing .message-author { color: rgba(255,255,255,0.7); }
+
+.message.system {
+    align-self: center;
+    background: var(--system);
+    color: var(--accent);
+    font-size: 12px;
+}
+
+#form {
+    display: flex;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+}
+
+#msg {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+#msg::placeholder { color: var(--text-muted); }
+#msg:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+}
+
+#form button {
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+#form button:hover { background: #79b8ff; }
+#form button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-file {
+    padding: 12px 14px;
+    background: var(--surface-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.btn-file:hover { background: var(--border); }
+
+.message-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px dashed var(--border);
+    margin-top: 4px;
+}
+
+.message-file-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.message-file-link:hover { text-decoration: underline; }
+
+.message-file-size {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.btn-voice {
+    padding: 12px 14px;
+    background: var(--surface-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.btn-voice:hover { background: var(--border); }
+.btn-voice.recording { background: #f85149; color: #fff; animation: voicePulse 1s infinite; }
+
+@keyframes voicePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.message-voice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border-radius: 8px;
+    margin-top: 4px;
+}
+
+.message-voice audio {
+    max-width: 200px;
+    height: 36px;
+}
+
+.message-image-wrap {
+    margin-top: 4px;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: inline-block;
+}
+
+.message-image-thumb {
+    max-width: 160px;
+    max-height: 160px;
+    display: block;
+}
+
+.lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.lightbox.visible { display: flex; }
+
+.lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 28px;
+    color: #fff;
+    cursor: pointer;
+    z-index: 1001;
+}
+</style>
+</head>
+<body>
+<div class="chat">
+    <header class="chat-header">
+        Чат
+        <span class="status disconnected" id="status">Отключено</span>
+        <span class="active-badge" id="activeBadge" title="Наведите для списка">
+            <span id="activeCount">0 в чате</span>
+            <div class="active-badge-popup" id="activePopup">
+                <div class="active-badge-popup-title">Активные участники</div>
+                <div class="active-badge-popup-list" id="activeList"></div>
+            </div>
+        </span>
+    </header>
+
+    <div id="log"></div>
+
+    <form id="form">
+        <input type="file" id="fileInput" hidden accept="image/*,*/*">
+        <input id="msg" type="text" placeholder="Сообщение…" autocomplete="off">
+        <button type="button" class="btn btn-file" id="fileBtn" title="Фото и файлы">📎</button>
+        <button type="button" class="btn btn-voice" id="voiceBtn" title="Голосовое сообщение">🎤</button>
+        <button type="submit">Отправить</button>
+    </form>
+</div>
+
+<div class="lightbox" id="lightbox">
+    <span class="lightbox-close" id="lightboxClose">&times;</span>
+    <img id="lightboxImg" alt="">
+</div>
+
+<script>
+(function () {
+    const log = document.getElementById("log");
+    const msgInput = document.getElementById("msg");
+    const form = document.getElementById("form");
+    const statusEl = document.getElementById("status");
+    const activeCountEl = document.getElementById("activeCount");
+    const activeListEl = document.getElementById("activeList");
+
+    const activeWindowMs = 10 * 60 * 1000;
+    const activeUsers = new Map();
+
+    let ws = null;
+    let myLogin = "";
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 2000;
+
+    async function fetchMyLogin() {
+        try {
+            const res = await fetch("/Me", { credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                myLogin = data.login || "";
+            }
+        } catch (_) {}
+    }
+
+    const maxFileSize = 4 * 2048 * 1024;
+
+    function parseMessage(raw) {
+        try {
+            const o = JSON.parse(raw);
+            if (!o || typeof o.u !== "string") return null;
+            if (o.type === "file" && typeof o.name === "string" && (o.data || o.url)) {
+                return { user: o.u, type: "file", name: o.name, data: o.data, url: o.url, size: o.size };
+            }
+            if (o.type === "image" && (o.data || o.url)) {
+                return { user: o.u, type: "image", name: o.name, data: o.data, url: o.url, mime: o.mime };
+            }
+            if (o.type === "voice" && (o.data || o.url)) {
+                return { user: o.u, type: "voice", data: o.data, url: o.url, mime: o.mime || "audio/webm" };
+            }
+            if (typeof o.m === "string") {
+                return { user: o.u, text: o.m };
+            }
+        } catch (_) {}
+        return null;
+    }
+
+    function renderMessage(user, text, payload) {
+        const isMe = user === myLogin;
+        activeUsers.set(user, Date.now());
+        updateActiveBadge();
+        if (payload) {
+            if (payload.type === "image") {
+                appendImageMessage(user, payload, isMe);
+            } else if (payload.type === "voice") {
+                appendVoiceMessage(user, payload, isMe);
+            } else {
+                appendFileMessage(user, payload, isMe);
+            }
+        } else {
+            appendMessage(text, isMe ? "outgoing" : "incoming", isMe ? null : user);
+        }
+    }
+
+    function getActiveUsers() {
+        const now = Date.now();
+        const list = [];
+        activeUsers.forEach((ts, user) => {
+            if (now - ts < activeWindowMs) list.push(user);
+        });
+        return list.sort();
+    }
+
+    function updateActiveBadge() {
+        const list = getActiveUsers();
+        activeCountEl.textContent = list.length + " в чате";
+        activeListEl.innerHTML = list.length ? list.map(u => "<div>" + escapeHtml(u) + "</div>").join("") : "<div style=\"color:var(--text-muted)\">Пока никого</div>";
+    }
+
+    function escapeHtml(s) {
+        const d = document.createElement("div");
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function getWsUrl() {
+        const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+        return protocol + "//" + location.host + "/ws";
+    }
+
+    function setStatus(connected) {
+        statusEl.textContent = connected ? "Подключено" : "Отключено";
+        statusEl.className = "status " + (connected ? "connected" : "disconnected");
+    }
+
+    function appendMessage(text, type, author) {
+        const div = document.createElement("div");
+        div.className = "message " + (type || "incoming");
+        if (author) {
+            const authorEl = document.createElement("div");
+            authorEl.className = "message-author";
+            authorEl.textContent = author;
+            div.appendChild(authorEl);
+        }
+        const textEl = document.createElement("div");
+        textEl.textContent = text;
+        div.appendChild(textEl);
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function appendImageMessage(user, payload, isMe) {
+        const div = document.createElement("div");
+        div.className = "message " + (isMe ? "outgoing" : "incoming");
+        if (!isMe) {
+            const authorEl = document.createElement("div");
+            authorEl.className = "message-author";
+            authorEl.textContent = user;
+            div.appendChild(authorEl);
+        }
+        const wrap = document.createElement("div");
+        wrap.className = "message-image-wrap";
+        const img = document.createElement("img");
+        img.className = "message-image-thumb";
+        if (payload.data) {
+            img.src = "data:" + (payload.mime || "image/jpeg") + ";base64," + payload.data;
+        } else if (payload.url) {
+            img.src = payload.url;
+        }
+        img.alt = payload.name || "Фото";
+        wrap.appendChild(img);
+        wrap.onclick = function () {
+            const lb = document.getElementById("lightbox");
+            const lbImg = document.getElementById("lightboxImg");
+            lbImg.src = img.src;
+            lb.classList.add("visible");
+        };
+        div.appendChild(wrap);
+        if (!isMe && (payload.data || payload.url)) {
+            const fwdBtn = document.createElement("a");
+            fwdBtn.className = "message-file-link";
+            fwdBtn.textContent = "Переслать";
+            fwdBtn.href = "#";
+            fwdBtn.style.display = "inline-block";
+            fwdBtn.style.marginTop = "6px";
+            fwdBtn.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                sendPayload("image", payload);
+            };
+            div.appendChild(fwdBtn);
+        }
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function appendVoiceMessage(user, payload, isMe) {
+        const div = document.createElement("div");
+        div.className = "message " + (isMe ? "outgoing" : "incoming");
+        if (!isMe) {
+            const authorEl = document.createElement("div");
+            authorEl.className = "message-author";
+            authorEl.textContent = user;
+            div.appendChild(authorEl);
+        }
+        const voiceBlock = document.createElement("div");
+        voiceBlock.className = "message-voice";
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        if (payload.data) {
+            audio.src = "data:" + (payload.mime || "audio/webm") + ";base64," + payload.data;
+        } else if (payload.url) {
+            audio.src = payload.url;
+        }
+        voiceBlock.appendChild(audio);
+        div.appendChild(voiceBlock);
+        if (!isMe && (payload.data || payload.url)) {
+            const fwdBtn = document.createElement("a");
+            fwdBtn.className = "message-file-link";
+            fwdBtn.textContent = "Переслать";
+            fwdBtn.href = "#";
+            fwdBtn.style.display = "inline-block";
+            fwdBtn.style.marginTop = "6px";
+            fwdBtn.onclick = function (e) {
+                e.preventDefault();
+                sendPayload("voice", payload);
+            };
+            div.appendChild(fwdBtn);
+        }
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function appendFileMessage(user, payload, isMe) {
+        const div = document.createElement("div");
+        div.className = "message " + (isMe ? "outgoing" : "incoming");
+        if (!isMe) {
+            const authorEl = document.createElement("div");
+            authorEl.className = "message-author";
+            authorEl.textContent = user;
+            div.appendChild(authorEl);
+        }
+        const fileBlock = document.createElement("div");
+        fileBlock.className = "message-file";
+        const link = document.createElement("a");
+        link.className = "message-file-link";
+        link.textContent = payload.name || "Файл";
+        link.download = payload.name || "download";
+        link.href = "#";
+
+        link.onclick = function (e) {
+            e.preventDefault();
+            if (payload.data) {
+                const bin = atob(payload.data);
+                const arr = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                const blob = new Blob([arr]);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = payload.name || "download";
+                a.click();
+                URL.revokeObjectURL(url);
+            } else if (payload.url) {
+                window.open(payload.url, "_blank");
+            }
+        };
+
+        fileBlock.appendChild(link);
+        if (payload.size) {
+            const sizeEl = document.createElement("span");
+            sizeEl.className = "message-file-size";
+            sizeEl.textContent = " (" + formatSize(payload.size) + ")";
+            fileBlock.appendChild(sizeEl);
+        }
+        if (!isMe && (payload.data || payload.url)) {
+            const fwdBtn = document.createElement("a");
+            fwdBtn.className = "message-file-link";
+            fwdBtn.textContent = "Переслать";
+            fwdBtn.href = "#";
+            fwdBtn.style.marginLeft = "8px";
+            fwdBtn.onclick = function (e) {
+                e.preventDefault();
+                sendPayload(payload.type || "file", payload);
+            };
+            fileBlock.appendChild(fwdBtn);
+        }
+        div.appendChild(fileBlock);
+        div.dataset.payload = JSON.stringify(payload);
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function sendPayload(msgType, payload) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        const p = { u: myLogin || "?", type: msgType };
+        if (payload.name) p.name = payload.name;
+        if (payload.data) p.data = payload.data;
+        if (payload.url) p.url = payload.url;
+        if (payload.size) p.size = payload.size;
+        if (payload.mime) p.mime = payload.mime;
+        ws.send(JSON.stringify(p));
+        if (myLogin) activeUsers.set(myLogin, Date.now());
+        updateActiveBadge();
+    }
+
+    function connect() {
+        if (ws && ws.readyState === WebSocket.OPEN) return;
+
+        try {
+            ws = new WebSocket(getWsUrl());
+        } catch (e) {
+            appendMessage("Ошибка WebSocket: " + e.message, "system");
+            setStatus(false);
+            scheduleReconnect();
+            return;
+        }
+
+        ws.onopen = function () {
+            reconnectAttempts = 0;
+            setStatus(true);
+            if (myLogin) activeUsers.set(myLogin, Date.now());
+            updateActiveBadge();
+        };
+
+        ws.onclose = function () {
+            setStatus(false);
+            appendMessage("Соединение закрыто", "system");
+            scheduleReconnect();
+        };
+
+        ws.onerror = function () {
+            setStatus(false);
+        };
+
+        ws.onmessage = function (evt) {
+            const lines = String(evt.data).split("\n").filter(Boolean);
+            lines.forEach(function (line) {
+                const parsed = parseMessage(line);
+                if (parsed) {
+                    if (parsed.type === "file" || parsed.type === "image" || parsed.type === "voice") {
+                        renderMessage(parsed.user, null, parsed);
+                    } else {
+                        renderMessage(parsed.user, parsed.text);
+                    }
+                } else {
+                    appendMessage(line, "incoming", "?");
+                }
+            });
+        };
+    }
+
+    function scheduleReconnect() {
+        if (reconnectAttempts >= maxReconnectAttempts) return;
+        reconnectAttempts++;
+        setTimeout(connect, reconnectDelay);
+    }
+
+    form.onsubmit = function (e) {
+        e.preventDefault();
+        const text = msgInput.value.trim();
+        if (!text || !ws || ws.readyState !== WebSocket.OPEN) return false;
+
+        const payload = JSON.stringify({ u: myLogin || "?", m: text });
+        ws.send(payload);
+        if (myLogin) activeUsers.set(myLogin, Date.now());
+        updateActiveBadge();
+        msgInput.value = "";
+        return false;
+    };
+
+    document.getElementById("fileBtn").onclick = function () {
+        document.getElementById("fileInput").click();
+    };
+
+    document.getElementById("fileInput").onchange = function () {
+        const file = this.files[0];
+        if (!file) return;
+        if (file.size > maxFileSize) {
+            appendMessage("Файл слишком большой (макс. " + formatSize(maxFileSize) + ")", "system");
+            this.value = "";
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function () {
+            const b64 = reader.result.split(",")[1] || reader.result;
+            const isImage = file.type.startsWith("image/");
+            const payload = { name: file.name, data: b64, size: file.size, mime: file.type };
+            sendPayload(isImage ? "image" : "file", payload);
+            document.getElementById("fileInput").value = "";
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const maxVoiceSize = 2 * 1024 * 1024;
+    let mediaRecorder = null;
+    let voiceChunks = [];
+
+    document.getElementById("voiceBtn").onclick = function () {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+            return;
+        }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+            const opts = { mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm" };
+            mediaRecorder = new MediaRecorder(stream);
+            voiceChunks = [];
+            mediaRecorder.ondataavailable = function (e) { if (e.data.size) voiceChunks.push(e.data); };
+            mediaRecorder.onstop = function () {
+                stream.getTracks().forEach(function (t) { t.stop(); });
+                const blob = new Blob(voiceChunks, { type: opts.mimeType });
+                if (blob.size > maxVoiceSize) {
+                    appendMessage("Голосовое сообщение слишком длинное (макс. 2 мин)", "system");
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = function () {
+                        const b64 = reader.result.split(",")[1] || reader.result;
+                        sendPayload("voice", { data: b64, mime: opts.mimeType });
+                    };
+                    reader.readAsDataURL(blob);
+                }
+                document.getElementById("voiceBtn").classList.remove("recording");
+            };
+            mediaRecorder.start();
+            document.getElementById("voiceBtn").classList.add("recording");
+        }).catch(function () {
+            appendMessage("Нет доступа к микрофону", "system");
+        });
+    };
+
+    document.getElementById("lightboxClose").onclick = function () {
+        document.getElementById("lightbox").classList.remove("visible");
+    };
+    document.getElementById("lightbox").onclick = function (e) {
+        if (e.target === this) this.classList.remove("visible");
+    };
+
+    (async function init() {
+        await fetchMyLogin();
+        setInterval(function () {
+            const now = Date.now();
+            activeUsers.forEach(function (ts, user) {
+                if (now - ts >= activeWindowMs) activeUsers.delete(user);
+            });
+            updateActiveBadge();
+        }, 60000);
+        if (!("WebSocket" in window)) {
+            appendMessage("WebSocket не поддерживается браузером.", "system");
+            form.querySelector("button").disabled = true;
+        } else {
+            connect();
+        }
+    })();
+})();
+</script>
+</body>
+</html>

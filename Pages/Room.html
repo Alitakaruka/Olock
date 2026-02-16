@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вход</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-hover: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-hover: #79b8ff;
+    --success: #3fb950;
+    --error: #f85149;
+    --radius: 12px;
+}
+
+html, body {
+    min-height: 100%;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+}
+
+.card h1, .card h2 {
+    margin: 0 0 24px;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text);
+}
+
+.card h2 { font-size: 15px; margin-bottom: 20px; }
+
+.field { margin-bottom: 16px; }
+
+.field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.field input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.field input::placeholder { color: var(--text-muted); opacity: 0.7; }
+.field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+.btn {
+    width: 100%;
+    padding: 12px 16px;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-primary { background: var(--accent); color: var(--bg); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+
+.btn-secondary { background: var(--surface-hover); color: var(--text); }
+.btn-secondary:hover:not(:disabled) { background: var(--border); }
+
+.btn-success { background: var(--success); color: var(--bg); }
+.btn-success:hover:not(:disabled) { filter: brightness(1.1); }
+
+.btn-outline {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+.btn-outline:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
+
+.hint { margin-top: 16px; font-size: 11px; color: var(--text-muted); text-align: center; }
+
+.toggle-form { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+.toggle-form { display: none; }
+.toggle-form.visible { display: block; }
+
+.err-msg {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(248, 81, 73, 0.15);
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--error);
+    display: none;
+}
+.err-msg.visible { display: block; }
+
+#roomSection { display: none; }
+#roomSection.visible { display: block; }
+
+#authSection { display: none; }
+#authSection.visible { display: block; }
+
+.logged-in { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<main class="card">
+    <!-- Без сессии: вход в аккаунт / регистрация -->
+    <div id="authSection">
+        <form id="userLoginForm">
+            <h1>Вход в аккаунт</h1>
+            <div class="err-msg" id="userLoginErr"></div>
+
+            <div class="field">
+                <label for="userLogin">Логин</label>
+                <input type="text" id="userLogin" placeholder="ваш логин" required autocomplete="username">
+            </div>
+
+            <div class="field">
+                <label for="userPassword">Пароль</label>
+                <input type="password" id="userPassword" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="userLoginBtn">Войти</button>
+            <button type="button" class="btn btn-secondary" id="showRegisterBtn">Регистрация</button>
+        </form>
+
+        <div id="registerForm" class="toggle-form">
+            <h2>Регистрация</h2>
+            <div class="err-msg" id="registerErr"></div>
+
+            <div class="field">
+                <label for="regLogin">Логин</label>
+                <input type="text" id="regLogin" placeholder="придумайте логин" required autocomplete="username">
+            </div>
+
+            <div class="field">
+                <label for="regPassword">Пароль</label>
+                <input type="password" id="regPassword" placeholder="••••••••" required autocomplete="new-password">
+            </div>
+
+            <div class="field">
+                <label for="regPasswordConfirm">Подтверждение пароля</label>
+                <input type="password" id="regPasswordConfirm" placeholder="••••••••" required autocomplete="new-password">
+            </div>
+
+            <button type="button" class="btn btn-success" id="registerBtn">Зарегистрироваться</button>
+            <button type="button" class="btn btn-outline" id="hideRegisterBtn">Назад к входу</button>
+        </div>
+    </div>
+
+    <!-- С сессией: вход в комнату / создание комнаты -->
+    <div id="roomSection">
+        <div class="logged-in" id="loggedInAs"></div>
+
+        <form id="roomForm">
+            <h1>Вход в комнату</h1>
+            <div class="err-msg" id="roomErr"></div>
+
+            <div class="field">
+                <label for="room">Имя комнаты</label>
+                <input type="text" id="room" placeholder="например: dev-chat" required autocomplete="off">
+            </div>
+
+            <div class="field">
+                <label for="roomPassword">Пароль комнаты</label>
+                <input type="password" id="roomPassword" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="roomBtn">Войти в комнату</button>
+            <button type="button" class="btn btn-secondary" id="showCreateRoomBtn">Создать комнату</button>
+        </form>
+
+        <div id="createRoomForm" class="toggle-form">
+            <h2>Создание комнаты</h2>
+            <div class="err-msg" id="createErr"></div>
+
+            <div class="field">
+                <label for="newRoom">Имя комнаты</label>
+                <input type="text" id="newRoom" placeholder="например: dev-chat-new" required autocomplete="off">
+            </div>
+
+            <div class="field">
+                <label for="newPassword">Пароль</label>
+                <input type="password" id="newPassword" placeholder="••••••••" required>
+            </div>
+
+            <button type="button" class="btn btn-success" id="createRoomBtn">Создать</button>
+            <button type="button" class="btn btn-outline" id="hideCreateRoomBtn">Назад</button>
+        </div>
+
+        <button type="button" class="btn btn-outline" id="logoutBtn" style="margin-top: 20px;">Выйти</button>
+    </div>
+</main>
+
+<script>
+(function () {
+    const opts = { credentials: "include" };
+
+    async function sha256(text) {
+        const data = new TextEncoder().encode(text);
+        const hash = await crypto.subtle.digest("SHA-256", data);
+        return Array.from(new Uint8Array(hash))
+            .map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function showErr(id, msg) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = msg || "";
+        el.classList.toggle("visible", !!msg);
+    }
+
+    function setVisibility(hasSession, userLogin) {
+        const auth = document.getElementById("authSection");
+        const room = document.getElementById("roomSection");
+        const regForm = document.getElementById("registerForm");
+
+        if (hasSession) {
+            auth.classList.remove("visible");
+            room.classList.add("visible");
+            document.getElementById("loggedInAs").textContent = "Вы вошли как: " + (userLogin || "");
+            regForm.classList.remove("visible");
+        } else {
+            auth.classList.add("visible");
+            room.classList.remove("visible");
+        }
+    }
+
+    async function checkSession() {
+        try {
+            const res = await fetch("/Me", { ...opts, method: "GET" });
+            if (res.ok) {
+                const data = await res.json();
+                setVisibility(true, data.login);
+                return true;
+            }
+        } catch (_) {}
+        setVisibility(false);
+        return false;
+    }
+
+    document.getElementById("userLoginForm").onsubmit = async function (e) {
+        e.preventDefault();
+        showErr("userLoginErr", "");
+        const login = document.getElementById("userLogin").value.trim();
+        const password = document.getElementById("userPassword").value;
+        if (!login || !password) return;
+
+        const btn = document.getElementById("userLoginBtn");
+        btn.disabled = true;
+
+        try {
+            const res = await fetch("/Login", {
+                ...opts,
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ login, password: await sha256(password) })
+            });
+
+            if (!res.ok) {
+                const t = await res.text();
+                throw new Error(t.trim() === "invalid login or password" ? "Неверный логин или пароль" : t || "Ошибка входа");
+            }
+            await checkSession();
+        } catch (err) {
+            showErr("userLoginErr", err.message);
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    document.getElementById("showRegisterBtn").onclick = function () {
+        document.getElementById("registerForm").classList.add("visible");
+        showErr("registerErr", "");
+    };
+
+    document.getElementById("hideRegisterBtn").onclick = function () {
+        document.getElementById("registerForm").classList.remove("visible");
+        showErr("registerErr", "");
+    };
+
+    document.getElementById("registerBtn").onclick = async function () {
+        showErr("registerErr", "");
+        const login = document.getElementById("regLogin").value.trim();
+        const password = document.getElementById("regPassword").value;
+        const passwordConfirm = document.getElementById("regPasswordConfirm").value;
+
+        if (!login || !password || !passwordConfirm) {
+            showErr("registerErr", "Заполните все поля");
+            return;
+        }
+        if (password !== passwordConfirm) {
+            showErr("registerErr", "Пароли не совпадают");
+            return;
+        }
+        if (password.length < 4) {
+            showErr("registerErr", "Пароль должен быть не менее 4 символов");
+            return;
+        }
+
+        const btn = document.getElementById("registerBtn");
+        btn.disabled = true;
+
+        try {
+            const res = await fetch("/CreateUser", {
+                ...opts,
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ login, password: await sha256(password) })
+            });
+
+            if (!res.ok) {
+                const t = await res.text();
+                throw new Error(t.trim() === "login already exists" ? "Такой логин уже занят" : t || "Ошибка регистрации");
+            }
+
+            const loginRes = await fetch("/Login", {
+                ...opts,
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ login, password: await sha256(password) })
+            });
+            if (loginRes.ok) {
+                await checkSession();
+                document.getElementById("regLogin").value = "";
+                document.getElementById("regPassword").value = "";
+                document.getElementById("regPasswordConfirm").value = "";
+                document.getElementById("registerForm").classList.remove("visible");
+            } else {
+                showErr("registerErr", "Аккаунт создан. Войдите вручную.");
+            }
+        } catch (err) {
+            showErr("registerErr", err.message);
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    document.getElementById("roomForm").onsubmit = async function (e) {
+        e.preventDefault();
+        showErr("roomErr", "");
+        const room = document.getElementById("room").value.trim();
+        const password = document.getElementById("roomPassword").value;
+        if (!room || !password) return;
+
+        const btn = document.getElementById("roomBtn");
+        btn.disabled = true;
+
+        try {
+            const res = await fetch("/ConnectRoom", {
+                ...opts,
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ room, password: await sha256(password) })
+            });
+
+            if (!res.ok) {
+                const t = await res.text();
+                throw new Error(t.trim() === "unauthorized" ? "Сессия истекла. Войдите снова." : t || "Ошибка входа в комнату");
+            }
+            const data = await res.json().catch(() => ({}));
+            if (data.status === "ok") {
+                window.location.href = "/TestRoom";
+                return;
+            }
+            throw new Error("Неожиданный ответ сервера");
+        } catch (err) {
+            showErr("roomErr", err.message);
+            if (err.message.includes("Сессия")) await checkSession();
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    document.getElementById("showCreateRoomBtn").onclick = function () {
+        document.getElementById("createRoomForm").classList.add("visible");
+        showErr("createErr", "");
+    };
+
+    document.getElementById("hideCreateRoomBtn").onclick = function () {
+        document.getElementById("createRoomForm").classList.remove("visible");
+        showErr("createErr", "");
+    };
+
+    document.getElementById("createRoomBtn").onclick = async function () {
+        showErr("createErr", "");
+        const newRoom = document.getElementById("newRoom").value.trim();
+        const newPassword = document.getElementById("newPassword").value;
+        if (!newRoom || !newPassword) {
+            showErr("createErr", "Заполните все поля");
+            return;
+        }
+
+        const btn = document.getElementById("createRoomBtn");
+        btn.disabled = true;
+
+        try {
+            const res = await fetch("/CreateRoom", {
+                ...opts,
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomname: newRoom, roompassword: await sha256(newPassword) })
+            });
+
+            if (!res.ok) {
+                const t = await res.text();
+                throw new Error(t.trim() === "unauthorized" ? "Сессия истекла." : t || "Ошибка создания комнаты");
+            }
+            showErr("createErr", "");
+            document.getElementById("newRoom").value = "";
+            document.getElementById("newPassword").value = "";
+            document.getElementById("createRoomForm").classList.remove("visible");
+            btn.textContent = "Готово";
+            setTimeout(() => { btn.textContent = "Создать"; }, 1500);
+        } catch (err) {
+            showErr("createErr", err.message);
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    document.getElementById("logoutBtn").onclick = async function () {
+        try {
+            await fetch("/Logout", { ...opts, method: "POST" });
+            await checkSession();
+        } catch (_) {
+            setVisibility(false);
+        }
+    };
+
+    checkSession();
+})();
+</script>
+</body>
+</html>
