@@ -44,9 +44,10 @@ func (S *Server) Init() {
 	S.initDB()
 	// hub := NewHub() //
 	// go hub.Run()
-
+	S.rooms = make(map[string]*Hub)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		//
+		http.ServeFile(w, r, "Pages/Room.html")
 		if r.URL.Path != "/" {
 			http.Error(w, "Not found", http.StatusNotFound)
 			return
@@ -55,7 +56,7 @@ func (S *Server) Init() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		http.ServeFile(w, r, "Pages/Room.html")
+
 	})
 	// http.HandleFunc("/TestRoom", func(w http.ResponseWriter, r *http.Request) {
 	// 	if S.getSession(r) == nil {
@@ -72,14 +73,17 @@ func (S *Server) Init() {
 		}
 
 		room := r.PathValue("template")
-		if h, ok := S.rooms[room]; ok {
-			ServeWs(h, w, r)
+		fmt.Printf("room: %v\n", room)
+		if _, ok := S.rooms[room]; ok {
+
+			// ServeWs(h, w, r)
 		} else {
 			hub := NewHub() //
 			go hub.Run()
 			S.rooms[r.PathValue("template")] = hub
-			ServeWs(hub, w, r)
+			// ServeWs(hub, w, r)
 		}
+		http.ServeFile(w, r, "Pages/home.html")
 
 		// log.Println(r.PathValue("template"))
 		// template := r.PathValue("template")
@@ -96,6 +100,7 @@ func (S *Server) Init() {
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		if S.getSession(r) == nil {
+			//need find hub
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -142,7 +147,7 @@ func (S *Server) ConnectRoom(w http.ResponseWriter, r *http.Request) {
 	name = ? AND
 	password =?`,
 		room.Room,
-		room.Password).Scan(&queryRes.name, &queryRes.id)
+		room.Password).Scan(&queryRes.id, &queryRes.name)
 
 	if err != nil {
 		log.Println(err)
@@ -162,8 +167,14 @@ func (S *Server) ConnectRoom(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("redirect")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok"}`))
-	http.Redirect(w, r, "/rooms/"+room.Room, http.StatusSeeOther)
+	q := struct {
+		Status   string `json:"status"`
+		RoomName string `json:"roomName"`
+	}{Status: "ok", RoomName: queryRes.name}
+
+	responce, _ := json.Marshal(q)
+	w.Write(responce)
+	// http.Redirect(w, r, "/rooms/"+room.Room, http.StatusSeeOther)
 }
 
 func (S *Server) CreateRoom(w http.ResponseWriter, r *http.Request) {

@@ -403,7 +403,8 @@ body {
             }
             const data = await res.json().catch(() => ({}));
             if (data.status === "ok") {
-                window.location.href = "/TestRoom";
+                console.log(data);
+                window.location.href = "/rooms/" + data.roomName;
                 return;
             }
             throw new Error("Неожиданный ответ сервера");
